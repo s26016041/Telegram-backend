@@ -38,7 +38,7 @@ export async function LineBotRun(): Promise<void> {
         }
     });
 
-    app.listen(3000, () => console.log('LISTEN 3000'));
+    app.listen(8080, () => console.log('LISTEN 8080'));
 }
 
 async function typeChoose(event: WebhookEvent, bot: LineBot, cloudStorage: CloudStorage): Promise<void> {
