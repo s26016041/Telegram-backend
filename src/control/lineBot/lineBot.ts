@@ -61,25 +61,33 @@ const caseJoinText = "歡迎使用 Fox 通知機器人";
 
 async function caseJoin(event: WebhookEvent, bot: LineBot, cloudStorage: CloudStorage): Promise<void> {
     if (event.source.type === 'group') {
-        item.groups.push({ id: event.source.groupId });
+        try {
+            item.groups.push({ id: event.source.groupId });
 
-        bot.pushText(event.source.groupId, caseJoinText);
+            bot.pushText(event.source.groupId, caseJoinText);
 
-        fs.writeFileSync(path.join(GROUPS_FILE), JSON.stringify(item, null, 2));
+            fs.writeFileSync(path.join(GROUPS_FILE), JSON.stringify(item, null, 2));
 
-        cloudStorage.uploadFile(GROUPS_FILE);
+            cloudStorage.uploadFile(GROUPS_FILE);
+        } catch (e) {
+            console.log('caseJoin error', e);
+        }
     }
 }
 
 async function caseLeave(event: WebhookEvent, cloudStorage: CloudStorage): Promise<void> {
     if (event.source.type === 'group') {
-        const gid = event.source.groupId;
+        try {
+            const gid = event.source.groupId;
 
-        item.groups = item.groups.filter(g => g.id !== gid);
+            item.groups = item.groups.filter(g => g.id !== gid);
 
-        fs.writeFileSync(path.join(GROUPS_FILE), JSON.stringify(item, null, 2));
+            fs.writeFileSync(path.join(GROUPS_FILE), JSON.stringify(item, null, 2));
 
-        cloudStorage.uploadFile(GROUPS_FILE);
+            cloudStorage.uploadFile(GROUPS_FILE);
+        } catch (e) {
+            console.log('caseLeave error', e);
+        }
     }
 }
 
