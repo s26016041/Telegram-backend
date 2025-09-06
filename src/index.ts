@@ -2,14 +2,24 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { LineBotRun } from './control/lineBot/lineBot';
+import { Router } from './router/router';
+import express from 'express';
+import { NewAppContext } from './appContext/app_context';
 
 function index(): void {
     if (process.env.LOCAL_RUN == 'true') {
         dotenv.config();
         loadGcpKeyFromBase64();
     }
+    const router = express();
 
-    LineBotRun();
+    LineBotRun(router);
+
+    const appContext = NewAppContext();
+
+    Router(router, appContext);
+
+    router.listen(8080, () => console.log('router 8080'));
 }
 
 index();

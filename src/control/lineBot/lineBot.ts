@@ -5,27 +5,25 @@ import fs from 'fs';
 import path from 'path';
 import { CloudStorage } from '../../class/cloudStorage/cloud_storage';
 import { GROUPS_FILE } from '../../const';
+import { Item } from '../../domain/line_bot';
 
 
-
-type Group = {
-    id: string;
-};
-
-type Item = {
-    groups: Group[];
-};
 
 const item: Item = { groups: [] };
 
-export async function LineBotRun(): Promise<void> {
+export async function LineBotRun(app: express.Express): Promise<void> {
     try {
         const bot = new LineBot();
         const cloudStorage = new CloudStorage();
 
-        const app = express();
         await cloudStorage.downloadFile(GROUPS_FILE);
-        await parseItem();
+        await cloudStorage.parseItem(GROUPS_FILE).then(i => {
+            if (i) {
+                item.groups = i.groups;
+            }
+        });
+
+        console.log('當前群組 ID: ', item.groups);
 
         app.post('/webhook', middleware({
             channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN!,
@@ -38,7 +36,6 @@ export async function LineBotRun(): Promise<void> {
             }
         });
 
-        app.listen(8080, () => console.log('LISTEN 8080'));
     } catch (e) {
         console.log('LineBotRun error', e);
     }
@@ -95,35 +92,3 @@ async function caseLeave(event: WebhookEvent, cloudStorage: CloudStorage): Promi
 }
 
 
-function parseItem(): void {
-
-
-    const filePath = path.join(GROUPS_FILE);
-
-    if (!fs.existsSync(filePath)) {
-        console.warn('[Group] groups.txt 不存在，略過讀取');
-
-        return;
-    }
-
-    try {
-        const raw = fs.readFileSync(filePath, 'utf-8').trim();
-        if (raw === '') return;
-
-        const parsed = JSON.parse(raw);
-
-        if (!parsed || !Array.isArray(parsed.groups)) {
-            console.log('[GROUPS] JSON 格式不符，預期 { "group": [...] }，回傳空資料');
-            return;
-        }
-
-        const list = parsed.groups
-
-        item.groups = list;
-
-        return;
-    } catch (e) {
-        console.log('[GROUPS] JSON 解析失敗，回傳空陣列', e);
-        return;
-    }
-}

@@ -1,0 +1,11 @@
+import { LineBot } from '../class/lineBot/line_bot';
+import { AppContext } from '../domain/router';
+import { CloudStorage } from '../class/cloudStorage/cloud_storage';
+
+
+export function NewAppContext(): AppContext {
+    return {
+        lineBot: new LineBot(),
+        cloudStorage: new CloudStorage()
+    };
+}
