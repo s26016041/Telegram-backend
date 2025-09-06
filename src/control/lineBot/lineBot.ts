@@ -20,25 +20,29 @@ type Item = {
 const item: Item = { groups: [] };
 
 export async function LineBotRun(): Promise<void> {
-    const bot = new LineBot();
-    const cloudStorage = new CloudStorage();
+    try {
+        const bot = new LineBot();
+        const cloudStorage = new CloudStorage();
 
-    const app = express();
-    await cloudStorage.downloadFile(GROUPS_FILE);
-    await parseItem();
+        const app = express();
+        await cloudStorage.downloadFile(GROUPS_FILE);
+        await parseItem();
 
-    app.post('/webhook', middleware({
-        channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN!,
-        channelSecret: process.env.LINE_CHANNEL_SECRET!,
-    }), async (req, res) => {
-        const events = req.body.events as WebhookEvent[];
-        res.sendStatus(200);
-        for (const e of events) {
-            await typeChoose(e, bot, cloudStorage);
-        }
-    });
+        app.post('/webhook', middleware({
+            channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN!,
+            channelSecret: process.env.LINE_CHANNEL_SECRET!,
+        }), async (req, res) => {
+            const events = req.body.events as WebhookEvent[];
+            res.sendStatus(200);
+            for (const e of events) {
+                await typeChoose(e, bot, cloudStorage);
+            }
+        });
 
-    app.listen(8080, () => console.log('LISTEN 8080'));
+        app.listen(8080, () => console.log('LISTEN 8080'));
+    } catch (e) {
+        console.log('LineBotRun error', e);
+    }
 }
 
 async function typeChoose(event: WebhookEvent, bot: LineBot, cloudStorage: CloudStorage): Promise<void> {
