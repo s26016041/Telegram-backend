@@ -8,4 +8,11 @@ export class LineBot {
             channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN!,
         });
     }
+
+    pushText(to: string, text: string) {
+        this.client.pushMessage({
+            to,
+            messages: [{ type: "text", text }],
+        });
+    }
 }

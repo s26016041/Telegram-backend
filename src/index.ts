@@ -1,12 +1,32 @@
 import dotenv from 'dotenv';
-import { lineBot } from './control/lineBot/lineBot.';
+import fs from 'fs';
+import path from 'path';
+import { LineBotRun } from './control/lineBot/lineBot';
 
 function index(): void {
     if (process.env.LOCAL_RUN == 'true') {
         dotenv.config();
+        loadGcpKeyFromBase64();
     }
 
-    lineBot();
+    LineBotRun();
 }
 
 index();
+
+async function loadGcpKeyFromBase64() {
+    const b64 = process.env.GCP_KEY_B64;
+    if (!b64) {
+        console.warn('[GCP] 未設定 GCP_KEY_B64，略過還原');
+        return;
+    }
+    try {
+        const filePath = path.join('./', 'gcp-key.json');
+        fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = filePath;
+        console.log('[GCP] 金鑰已還原到', filePath);
+    } catch (e) {
+        console.error('[GCP] 還原失敗', e);
+        throw e;
+    }
+}
