@@ -19,20 +19,13 @@ async function index(): Promise<void> {
     if (!token) console.log('缺少 TELEGRAM_BOT_TOKEN');
 
     const TGBot = new TelegramBot(token, {
-        polling: false, request: {
+        polling: true, request: {
             agentOptions: {
                 keepAlive: true,
                 family: 4
             }
         }
     });
-
-    try {
-        await TGBot.deleteWebHook({ drop_pending_updates: true });
-        console.log('[TG] deleteWebhook OK, use polling');
-    } catch (e) {
-        console.warn('[TG] deleteWebhook 失敗 (可忽略)', e);
-    }
 
     TGBotRun(TGBot);
 
@@ -41,10 +34,6 @@ async function index(): Promise<void> {
     Router(router, appContext);
 
     router.listen(8080, () => console.log('router 8080'));
-
-    TGBot.startPolling()
-        .then(() => console.log('[TG] startPolling'))
-        .catch((e: any) => console.error('[TG] startPolling error', e));
 }
 
 index();

@@ -1,4 +1,3 @@
-import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { CloudStorage } from '../../class/cloudStorage/cloud_storage';
@@ -72,23 +71,3 @@ function leftGroup(msg: any, cloudStorage: CloudStorage) {
         console.log('刪除: ', id);
     }
 }
-
-
-
-// async function caseLeave(event: WebhookEvent, cloudStorage: CloudStorage): Promise<void> {
-//     if (event.source.type === 'group') {
-//         try {
-//             const gid = event.source.groupId;
-
-//             item.groups = item.groups.filter(g => g.id !== gid);
-
-//             fs.writeFileSync(path.join(TG_FILE), JSON.stringify(item, null, 2));
-
-//             cloudStorage.uploadFile(TG_FILE);
-//         } catch (e) {
-//             console.log('caseLeave error', e);
-//         }
-//     }
-// }
-
-
