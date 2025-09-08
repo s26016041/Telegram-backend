@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { LineBotRun } from './control/lineBot/lineBot';
+import { TGBotRun } from './control/TGBot/tg_bot';
 import { Router } from './router/router';
 import express from 'express';
 import { NewAppContext } from './appContext/app_context';
@@ -13,9 +13,23 @@ function index(): void {
     }
     const router = express();
 
-    LineBotRun(router);
+    const TelegramBot = require('node-telegram-bot-api');
 
-    const appContext = NewAppContext();
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) console.log('缺少 TELEGRAM_BOT_TOKEN');
+
+    const TGBot = new TelegramBot(token, {
+        polling: true, request: {
+            agentOptions: {
+                keepAlive: true,
+                family: 4
+            }
+        }
+    });
+
+    TGBotRun(TGBot);
+
+    const appContext = NewAppContext(TGBot);
 
     Router(router, appContext);
 

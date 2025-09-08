@@ -1,19 +1,20 @@
 import { Request, Response } from 'express';
 import { AppContext } from '../../domain/router';
-import { GROUPS_FILE } from '../../const';
-import { Item } from '../../domain/line_bot';
+import { TG_FILE } from '../../const';
+import { TGItem } from '../../domain/TG_bot';
 
 export function Broadcast(appContext: AppContext) {
-    return (req: Request, res: Response) => {
+    return async (req: Request, res: Response) => {
         const { name, content } = req.body as { name: string; content: string };
-        appContext.cloudStorage.parseItem(GROUPS_FILE).then(i => {
+
+        appContext.cloudStorage.parseItem(TG_FILE).then(i => {
             if (i) {
-                const item = i as Item;
+                const item = i as TGItem;
 
                 for (const g of item.groups) {
                     const text = `${name}:  \n ${content}`;
 
-                    appContext.lineBot.pushText(g.id, text);
+                    appContext.TGBot.sendMessage(g.id, text);
                 }
             }
         });

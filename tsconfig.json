@@ -5,7 +5,8 @@
     "outDir": "./dist",          // 編譯後 JS 放置目錄
     "rootDir": "./src",          // TS 原始檔資料夾
     "strict": true,              // 開啟嚴格型別檢查
-    "esModuleInterop": true      // 模組相容性
+    "esModuleInterop": true,      // 模組相容性
+    "skipLibCheck": true
   },
   "include": ["src/**/*"]        // 編譯 src 資料夾所有 TS
 }
