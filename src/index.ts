@@ -21,6 +21,7 @@ function index(): void {
     const TGBot = new TelegramBot(token, {
         polling: true, request: {
             agentOptions: {
+                polling: false,
                 keepAlive: true,
                 family: 4
             }
@@ -34,6 +35,10 @@ function index(): void {
     Router(router, appContext);
 
     router.listen(8080, () => console.log('router 8080'));
+
+    TGBot.startPolling()
+        .then(() => console.log('[TG] startPolling'))
+        .catch((e: any) => console.error('[TG] startPolling error', e));
 }
 
 index();
