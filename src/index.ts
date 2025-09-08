@@ -6,7 +6,7 @@ import { Router } from './router/router';
 import express from 'express';
 import { NewAppContext } from './appContext/app_context';
 
-function index(): void {
+async function index(): Promise<void> {
     if (process.env.LOCAL_RUN == 'true') {
         dotenv.config();
         loadGcpKeyFromBase64();
@@ -19,14 +19,20 @@ function index(): void {
     if (!token) console.log('缺少 TELEGRAM_BOT_TOKEN');
 
     const TGBot = new TelegramBot(token, {
-        polling: true, request: {
+        polling: false, request: {
             agentOptions: {
-                polling: false,
                 keepAlive: true,
                 family: 4
             }
         }
     });
+
+    try {
+        await TGBot.deleteWebHook({ drop_pending_updates: true });
+        console.log('[TG] deleteWebhook OK, use polling');
+    } catch (e) {
+        console.warn('[TG] deleteWebhook 失敗 (可忽略)', e);
+    }
 
     TGBotRun(TGBot);
 
