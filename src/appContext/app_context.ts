@@ -5,7 +5,7 @@ import { CloudStorage } from '../class/cloudStorage/cloud_storage';
 
 export function NewAppContext(TGBot : any): AppContext {
     return {
-        lineBot: new LineBot(),
+        // lineBot: new LineBot(),
         cloudStorage: new CloudStorage(),
         TGBot: TGBot
     };
