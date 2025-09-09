@@ -43,6 +43,22 @@ function TGon(bot: any, cloudStorage: CloudStorage) {
     bot.onText(/\/remake_broadcast/, (msg: any) => {
         remakeBroadcast(bot, msg, cloudStorage)
     });
+
+    bot.onText(/\/remake_data/, (msg: any) => {
+        remakeData(bot, msg, cloudStorage)
+    });
+}
+
+async function remakeData(bot: any, msg: any, cloudStorage: CloudStorage) {
+    const id = msg.chat.id;
+
+    item = { groups: [], Broadcasts: [] };
+
+    fs.writeFileSync(path.join(TG_FILE), JSON.stringify(item, null, 2));
+
+    cloudStorage.uploadFile(TG_FILE);
+
+    bot.sendMessage(id, `廣播紀錄已重製📣`);
 }
 
 async function remakeBroadcast(bot: any, msg: any, cloudStorage: CloudStorage) {
