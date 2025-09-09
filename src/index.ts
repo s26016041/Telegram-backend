@@ -21,12 +21,7 @@ async function index(): Promise<void> {
 
     router.listen(8080, () => console.log('router 8080'));
 
-    await appContext.TGBot.deleteWebHook({ drop_pending_updates: true });
-
-    // 手動開始 polling（只啟一次）
-    appContext.TGBot.startPolling()
-        .then(() => console.log('[TG] startPolling'))
-        .catch((e: any) => console.error('[TG] startPolling error', e));
+    await appContext.TGBot.startPolling();
 }
 
 index();
