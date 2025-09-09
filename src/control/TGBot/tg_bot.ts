@@ -40,7 +40,7 @@ function TGon(bot: any, cloudStorage: CloudStorage) {
         broadcast(bot, msg, cloudStorage)
     });
 
-    bot.onText(/\/remakeBroadcast/, (msg: any) => {
+    bot.onText(/\/remake_broadcast/, (msg: any) => {
         remakeBroadcast(bot, msg, cloudStorage)
     });
 }
