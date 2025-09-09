@@ -29,18 +29,6 @@
 2. 監聽群組事件與指令
 3. 廣播 API 發送 → 更新統計 → 上傳 GCS
 
-## 目錄摘要
-```
-src/
-  index.ts              # 進入點
-  appContext/           # 建立應用上下文
-  control/TGBot/        # Telegram Bot 邏輯
-  control/broadcast/    # 廣播 API
-  class/cloudStorage/   # GCS 操作
-  domain/               # 型別定義
-TGGroups.json           # 群組與統計資料
-```
-
 ## 環境變數 (.env)
 以下為程式實際使用到的環境變數：
 
