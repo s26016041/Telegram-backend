@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { AppContext } from '../../domain/router';
 import { TG_FILE } from '../../const';
 import { TGItem } from '../../domain/TG_bot';
+import fs from 'fs';
+import path from 'path';
 
 export function Broadcast(appContext: AppContext) {
     return async (req: Request, res: Response) => {
@@ -16,6 +18,22 @@ export function Broadcast(appContext: AppContext) {
 
                     appContext.TGBot.sendMessage(g.id, text);
                 }
+
+                const broadcasts = Array.isArray(item.Broadcasts) ? item.Broadcasts : [];
+
+                let itemFind = broadcasts.find(b => b.name === name);
+
+                if (itemFind) {
+                    itemFind.quantity += 1;
+                } else {
+                    broadcasts.push({ name: name, quantity: 1 });
+                }
+
+                item.Broadcasts = broadcasts;
+
+                fs.writeFileSync(path.join(TG_FILE), JSON.stringify(item, null, 2));
+
+                appContext.cloudStorage.uploadFile(TG_FILE);
             }
         });
 

@@ -13,39 +13,18 @@ async function index(): Promise<void> {
     }
     const router = express();
 
-    const TelegramBot = require('node-telegram-bot-api');
+    const appContext = await NewAppContext();
 
-    const token = process.env.TELEGRAM_BOT_TOKEN;
-    if (!token) console.log('缺少 TELEGRAM_BOT_TOKEN');
-
-    const TGBot = new TelegramBot(token, {
-        polling: false, request: {
-            agentOptions: {
-                keepAlive: true,
-                family: 4
-            }
-        }
-    });
-
-    // 刪 webhook（避免 409）
-    try {
-        await TGBot.deleteWebHook({ drop_pending_updates: true });
-        console.log('[TG] deleteWebhook OK, use polling');
-    } catch (e) {
-        console.warn('[TG] deleteWebhook 失敗 (可忽略)', e);
-    }
-
-
-    TGBotRun(TGBot);
-
-    const appContext = NewAppContext(TGBot);
+    TGBotRun(appContext.TGBot);
 
     Router(router, appContext);
 
     router.listen(8080, () => console.log('router 8080'));
 
+    await appContext.TGBot.deleteWebHook({ drop_pending_updates: true });
+
     // 手動開始 polling（只啟一次）
-    TGBot.startPolling()
+    appContext.TGBot.startPolling()
         .then(() => console.log('[TG] startPolling'))
         .catch((e: any) => console.error('[TG] startPolling error', e));
 }

@@ -140,3 +140,5 @@ vite.config.ts.timestamp-*
 
 gcp-key.json
 groups.json
+TGGroups.json
+TGGroupsTest.json

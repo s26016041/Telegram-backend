@@ -5,7 +5,7 @@ import { TG_FILE, TG_USERNAME } from '../../const';
 import { TGItem } from '../../domain/TG_bot';
 
 
-const item: TGItem = { groups: [] };
+let item: TGItem = { groups: [], Broadcasts: [] };
 
 export async function TGBotRun(bot: any): Promise<void> {
     try {
@@ -35,6 +35,41 @@ function TGon(bot: any, cloudStorage: CloudStorage) {
             leftGroup(msg, cloudStorage)
         }
     });
+
+    bot.onText(/\/broadcast/, (msg: any) => {
+        broadcast(bot, msg, cloudStorage)
+    });
+
+    bot.onText(/\/remakeBroadcast/, (msg: any) => {
+        remakeBroadcast(bot, msg, cloudStorage)
+    });
+}
+
+async function remakeBroadcast(bot: any, msg: any, cloudStorage: CloudStorage) {
+    const id = msg.chat.id;
+
+    item.Broadcasts = [];
+
+    fs.writeFileSync(path.join(TG_FILE), JSON.stringify(item, null, 2));
+
+    cloudStorage.uploadFile(TG_FILE);
+
+    bot.sendMessage(id, `廣播紀錄已重製📣`);
+}
+
+async function broadcast(bot: any, msg: any, cloudStorage: CloudStorage) {
+    const i = await cloudStorage.parseItem(TG_FILE);
+    if (i) {
+        item = i;
+    }
+    const id = msg.chat.id;
+
+    let text = `廣播紀錄📣: \n`;
+    for (const m of item.Broadcasts) {
+        text += `${m.name}: ${m.quantity} 次\n`;
+    }
+
+    bot.sendMessage(id, text);
 }
 
 const caseJoinText = "歡迎使用 Fox 通知機器人";
