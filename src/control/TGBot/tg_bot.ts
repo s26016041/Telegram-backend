@@ -58,7 +58,7 @@ async function remakeData(bot: any, msg: any, cloudStorage: CloudStorage) {
 
     cloudStorage.uploadFile(TG_FILE);
 
-    bot.sendMessage(id, `廣播紀錄已重製📣`);
+    bot.sendMessage(id, `資料庫已重製💾`);
 }
 
 async function remakeBroadcast(bot: any, msg: any, cloudStorage: CloudStorage) {
