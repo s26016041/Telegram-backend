@@ -1,10 +1,11 @@
 export type TGGroup = {
     id: number;
+    Broadcasts: TGBroadcast[];
 };
 
 export type TGItem = {
     groups: TGGroup[];
-    Broadcasts: TGBroadcast[];
+   
 };
 
 export type TGBroadcast = {
