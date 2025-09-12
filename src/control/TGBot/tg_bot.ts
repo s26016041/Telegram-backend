@@ -5,7 +5,7 @@ import { TG_FILE, TG_USERNAME } from '../../const';
 import { TGItem } from '../../domain/TG_bot';
 
 
-let item: TGItem = { groups: [], Broadcasts: [] };
+let item: TGItem = { groups: [] };
 
 export async function TGBotRun(bot: any): Promise<void> {
     try {
@@ -47,12 +47,22 @@ function TGon(bot: any, cloudStorage: CloudStorage) {
     bot.onText(/\/remake_data/, (msg: any) => {
         remakeData(bot, msg, cloudStorage)
     });
+
+    bot.onText(/\/room_id/, (msg: any) => {
+        getRoomID(bot, msg)
+    });
+}
+
+function getRoomID(bot: any, msg: any) {
+    const id = msg.chat.id;
+
+    bot.sendMessage(id, `本群組 ID 為: ${id}`);
 }
 
 async function remakeData(bot: any, msg: any, cloudStorage: CloudStorage) {
     const id = msg.chat.id;
 
-    item = { groups: [], Broadcasts: [] };
+    item = { groups: [] };
 
     fs.writeFileSync(path.join(TG_FILE), JSON.stringify(item, null, 2));
 
@@ -64,7 +74,12 @@ async function remakeData(bot: any, msg: any, cloudStorage: CloudStorage) {
 async function remakeBroadcast(bot: any, msg: any, cloudStorage: CloudStorage) {
     const id = msg.chat.id;
 
-    item.Broadcasts = [];
+    let groups = item.groups.find(g => g.id === id)
+
+    if (groups) {
+        groups.Broadcasts = [];
+    }
+
 
     fs.writeFileSync(path.join(TG_FILE), JSON.stringify(item, null, 2));
 
@@ -80,11 +95,15 @@ async function broadcast(bot: any, msg: any, cloudStorage: CloudStorage) {
     }
     const id = msg.chat.id;
 
-    let text = `廣播紀錄📣: \n`;
-    for (const m of item.Broadcasts) {
-        text += `${m.name}: ${m.quantity} 次\n`;
-    }
+    const group = item.groups.find(g => g.id === id);
 
+    let text = `廣播紀錄📣: \n`;
+
+    if (group) {
+        for (const m of group.Broadcasts) {
+            text += `${m.name}: ${m.quantity} 次\n`;
+        }
+    }
     bot.sendMessage(id, text);
 }
 
@@ -92,9 +111,10 @@ const caseJoinText = "歡迎使用 Fox 通知機器人";
 
 function joinGroup(bot: any, msg: any, cloudStorage: CloudStorage) {
     const addedMe = msg.new_chat_members.some((m: any) => m.username === TG_USERNAME);
+
     if (addedMe) {
         const id = msg.chat.id;
-        item.groups.push({ id: id });
+        item.groups.push({ id: id, Broadcasts: [] });
 
         bot.sendMessage(id, `👋 ${caseJoinText}`);
 
