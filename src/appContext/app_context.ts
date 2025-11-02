@@ -9,7 +9,7 @@ export async function NewAppContext(): Promise<AppContext> {
     if (!token) console.log('缺少 TELEGRAM_BOT_TOKEN');
 
     const TGBot = new TelegramBot(token, {
-        polling: false, request: {
+        polling: true, request: {
             agentOptions: {
                 keepAlive: true,
                 family: 4

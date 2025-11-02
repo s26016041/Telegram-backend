@@ -20,8 +20,6 @@ async function index(): Promise<void> {
     Router(router, appContext);
 
     router.listen(8080, () => console.log('router 8080'));
-
-    await appContext.TGBot.startPolling();
 }
 
 index();
