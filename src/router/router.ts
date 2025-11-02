@@ -9,6 +9,4 @@ export function Router(router: express.Express, appContext: AppContext): void {
     router.post('/broadcast', express.json(), Broadcast(appContext));
 
     router.post('/sendMessage', express.json(), SendMessage(appContext));
-
-    
 }

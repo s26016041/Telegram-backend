@@ -28,27 +28,33 @@ export async function TGBotRun(bot: any): Promise<void> {
 function TGon(bot: any, cloudStorage: CloudStorage) {
     bot.on('message', (msg: any) => {
         if (msg.new_chat_members) {
+            console.log('加入群組: ', msg.chat.id);
             joinGroup(bot, msg, cloudStorage)
         }
 
         if (msg.left_chat_member) {
+            console.log('退出群組: ', msg.chat.id);
             leftGroup(msg, cloudStorage)
         }
     });
 
     bot.onText(/\/broadcast/, (msg: any) => {
+          console.log(msg.chat.id,'觸發廣播');
         broadcast(bot, msg, cloudStorage)
     });
 
     bot.onText(/\/remake_broadcast/, (msg: any) => {
+        console.log(msg.chat.id,'刪除廣播紀錄');
         remakeBroadcast(bot, msg, cloudStorage)
     });
 
     bot.onText(/\/remake_data/, (msg: any) => {
+        console.log(msg.chat.id,'刪除資料庫');
         remakeData(bot, msg, cloudStorage)
     });
 
     bot.onText(/\/room_id/, (msg: any) => {
+          console.log('查詢房間ID', msg.chat.id);
         getRoomID(bot, msg)
     });
 }
