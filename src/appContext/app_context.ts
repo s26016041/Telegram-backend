@@ -18,8 +18,10 @@ export async function NewAppContext(): Promise<AppContext> {
     });
 
     // 刪 webhook（避免 409）
+    // 注意：不能加 drop_pending_updates，否則停機期間「bot 被加入群組」的事件會被丟掉，
+    // 那個群組就永遠不會被登記
     try {
-        await TGBot.deleteWebHook({ drop_pending_updates: true });
+        await TGBot.deleteWebHook();
         console.log('[TG] deleteWebhook OK, use polling');
     } catch (e) {
         console.warn('[TG] deleteWebhook 失敗 (可忽略)', e);

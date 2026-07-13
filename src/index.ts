@@ -15,12 +15,15 @@ async function index(): Promise<void> {
 
     const appContext = await NewAppContext();
 
-    TGBotRun(appContext.TGBot);
+    TGBotRun(appContext.TGBot).catch(e => console.error('[TG] TGBotRun 失敗', e));
 
     Router(router, appContext);
 
     router.listen(8080, () => console.log('router 8080'));
 }
+
+process.on('unhandledRejection', e => console.error('[PROCESS] unhandledRejection', e));
+process.on('uncaughtException', e => console.error('[PROCESS] uncaughtException', e));
 
 index();
 
