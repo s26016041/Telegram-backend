@@ -60,4 +60,28 @@ export class CloudStorage {
         return;
     }
 }
+
+    // 先從 GCS 拉最新檔案再讀，避免讀到本機過期的快照
+    async syncItem(fileName: string): Promise<any> {
+        try {
+            await this.downloadFile(fileName);
+        } catch (e) {
+            console.error(`[GCS] 下載失敗，改用本機既有檔案: ${fileName}`, e);
+        }
+
+        return this.parseItem(fileName);
+    }
+
+    // 寫本機 + 上傳 GCS，失敗會拋出讓呼叫端知道
+    async saveItem(fileName: string, item: unknown): Promise<void> {
+        fs.writeFileSync(path.join(fileName), JSON.stringify(item, null, 2));
+
+        try {
+            await this.uploadFile(fileName);
+            console.log(`[GCS] 已上傳: ${fileName}`);
+        } catch (e) {
+            console.error(`[GCS] 上傳失敗: ${fileName}`, e);
+            throw e;
+        }
+    }
 }
