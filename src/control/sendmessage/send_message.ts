@@ -14,7 +14,8 @@ export function SendMessage(appContext: AppContext) {
         const requestId = (req as any).requestId ?? '-';
         // code：要讓使用者「點一下就複製」的文字（例如座標），會以等寬字體顯示；
         // photo：圖片網址，有給就用圖片＋說明的方式送出。兩者都是選填，沒給時行為跟以前完全一樣。
-        const { id, name, content, code, photo } = (req.body ?? {}) as { id: number | string; name: string; content?: string; code?: string; photo?: string };
+        // ttl：選填，單位秒；有給才會在這麼久之後自動刪除這則訊息，沒給就永遠不刪（舊呼叫端不受影響）。
+        const { id, name, content, code, photo, ttl } = (req.body ?? {}) as { id: number | string; name: string; content?: string; code?: string; photo?: string; ttl?: number };
 
         const chatId = Number(id);
 
@@ -57,6 +58,20 @@ export function SendMessage(appContext: AppContext) {
             res.status(502).json({ ok: false, error: 'Telegram 送出失敗', chatId: chatId, detail: detail });
 
             return;
+        }
+
+        const ttlSec = Number(ttl);
+
+        if (Number.isFinite(ttlSec) && ttlSec > 0 && result.sent?.message_id) {
+            const delChatId = result.chatId;
+            const messageId = result.sent.message_id;
+
+            // 只存在記憶體：服務在期間內重啟的話這則就不會被刪（可接受）
+            setTimeout(() => {
+                appContext.TGBot.deleteMessage(delChatId, messageId).catch((e: unknown) => {
+                    console.error(`[sendMessage] ${requestId} 自動刪除失敗 chatId=${delChatId} messageId=${messageId}`, TGErrorDetail(e));
+                });
+            }, Math.min(ttlSec, 48 * 3600) * 1000);
         }
 
         // 統計失敗不影響「訊息已送出」這件事，只記 log
