@@ -1,32 +1,52 @@
 import { Request, Response } from 'express';
 import { AppContext } from '../../domain/router';
-import { CountBroadcast, FindGroup, LoadItem, MigrateGroup, SaveItem, SendWithMigration, TGErrorDetail, UpsertGroup } from '../../store/tg_group_store';
+import { CountBroadcast, FindGroup, LoadItem, MigrateGroup, SaveItem, SendOptions, SendWithMigration, TGErrorDetail, UpsertGroup } from '../../store/tg_group_store';
 
 const GROUP_TYPES = ['group', 'supergroup'];
+
+// Telegram HTML 模式只需要跳脫這三個字元
+function escapeHtml(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 export function SendMessage(appContext: AppContext) {
     return async (req: Request, res: Response) => {
         const requestId = (req as any).requestId ?? '-';
-        const { id, name, content } = (req.body ?? {}) as { id: number | string; name: string; content: string };
+        // code：要讓使用者「點一下就複製」的文字（例如座標），會以等寬字體顯示；
+        // photo：圖片網址，有給就用圖片＋說明的方式送出。兩者都是選填，沒給時行為跟以前完全一樣。
+        const { id, name, content, code, photo } = (req.body ?? {}) as { id: number | string; name: string; content?: string; code?: string; photo?: string };
 
         const chatId = Number(id);
 
-        if (!Number.isFinite(chatId) || chatId === 0 || !content) {
-            console.log(`[sendMessage] ${requestId} 參數錯誤`, { id, name, content });
+        if (!Number.isFinite(chatId) || chatId === 0 || (!content && !code)) {
+            console.log(`[sendMessage] ${requestId} 參數錯誤`, { id, name, content, code });
 
-            res.status(400).json({ ok: false, error: 'id 必須是數字且 content 不可為空', received: { id, name, content } });
+            res.status(400).json({ ok: false, error: 'id 必須是數字，且 content 或 code 至少要有一個', received: { id, name, content, code } });
 
             return;
         }
 
-        const text = `${name}:  \n ${content}`;
+        let text: string;
+        let opts: SendOptions | undefined;
+
+        if (code) {
+            // 例：鬼斯♀ IV100(A15/D15/S15) CP597 L17 剩 06 分: <code>34.918553,135.721833</code>
+            text = `${escapeHtml(name ?? '')}: <code>${escapeHtml(code)}</code>`;
+            opts = { parseMode: 'HTML' };
+        } else {
+            text = `${name}:  \n ${content}`;
+        }
+
+        if (photo) {
+            opts = { ...opts, photo: photo };
+        }
 
         // 直接送，不再先查名單。bot 不在房間裡的話 Telegram 會直接回錯，
         // 名單只用來做廣播與統計。
         let result: { sent: any; chatId: number; migratedFrom?: number };
 
         try {
-            result = await SendWithMigration(appContext.TGBot, chatId, text);
+            result = await SendWithMigration(appContext.TGBot, chatId, text, opts);
 
             console.log(`[sendMessage] ${requestId} 送出成功 chatId=${result.chatId} messageId=${result.sent?.message_id} chatType=${result.sent?.chat?.type} title=${result.sent?.chat?.title}`);
         } catch (e) {

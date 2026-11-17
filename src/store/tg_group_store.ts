@@ -72,9 +72,35 @@ export function CountBroadcast(group: TGGroup, name: string, quantity: number = 
 }
 
 // 送訊息；若群組已升級成超級群組，Telegram 會在錯誤裡給新 ID，直接改送新 ID
-export async function SendWithMigration(bot: any, chatId: number, text: string): Promise<{ sent: any; chatId: number; migratedFrom?: number }> {
+export type SendOptions = {
+    // 'HTML' 時 text 可以含 <code>…</code>，Telegram 裡點一下就會複製
+    parseMode?: 'HTML';
+    // 有給圖片網址就改用 sendPhoto，text 當圖片說明
+    photo?: string;
+};
+
+// 送一則訊息；有圖片但圖片送不出去（網址壞掉等）時，退回純文字，避免通知漏掉
+async function deliver(bot: any, chatId: number, text: string, opts?: SendOptions): Promise<any> {
+    const extra = opts?.parseMode ? { parse_mode: opts.parseMode } : {};
+
+    if (opts?.photo) {
+        try {
+            return await bot.sendPhoto(chatId, opts.photo, { caption: text, ...extra });
+        } catch (e: any) {
+            if (e?.response?.body?.parameters?.migrate_to_chat_id) {
+                throw e;
+            }
+
+            console.error(`[TG] sendPhoto 失敗，改送純文字 chatId=${chatId}`, TGErrorDetail(e));
+        }
+    }
+
+    return await bot.sendMessage(chatId, text, extra);
+}
+
+export async function SendWithMigration(bot: any, chatId: number, text: string, opts?: SendOptions): Promise<{ sent: any; chatId: number; migratedFrom?: number }> {
     try {
-        const sent = await bot.sendMessage(chatId, text);
+        const sent = await deliver(bot, chatId, text, opts);
 
         return { sent: sent, chatId: chatId };
     } catch (e: any) {
@@ -86,7 +112,7 @@ export async function SendWithMigration(bot: any, chatId: number, text: string):
 
         console.log(`[TG] 群組已升級為超級群組: ${chatId} -> ${newId}，改送新 ID`);
 
-        const sent = await bot.sendMessage(newId, text);
+        const sent = await deliver(bot, newId, text, opts);
 
         return { sent: sent, chatId: Number(newId), migratedFrom: chatId };
     }
