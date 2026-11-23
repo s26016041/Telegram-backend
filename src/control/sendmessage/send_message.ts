@@ -15,7 +15,8 @@ export function SendMessage(appContext: AppContext) {
         // code：要讓使用者「點一下就複製」的文字（例如座標），會以等寬字體顯示；
         // photo：圖片網址，有給就用圖片＋說明的方式送出。兩者都是選填，沒給時行為跟以前完全一樣。
         // ttl：選填，單位秒；有給才會在這麼久之後自動刪除這則訊息，沒給就永遠不刪（舊呼叫端不受影響）。
-        const { id, name, content, code, photo, ttl, scale, anim } = (req.body ?? {}) as { id: number | string; name: string; content?: string; code?: string; photo?: string; ttl?: number; scale?: number; anim?: string };
+        // ends_in：選填，單位秒；文字裡的 {left} 會換成「剩幾分鐘」，並且每分鐘自動更新一次（倒數），直到時間到或訊息被刪。
+        const { id, name, content, code, photo, ttl, scale, anim, ends_in } = (req.body ?? {}) as { id: number | string; name: string; content?: string; code?: string; photo?: string; ttl?: number; scale?: number; anim?: string; ends_in?: number };
 
         const chatId = Number(id);
 
@@ -45,9 +46,19 @@ export function SendMessage(appContext: AppContext) {
             opts = { ...opts, photo: photo, scale: Math.min(6, Math.max(1, Math.round(Number(scale)) || 2)), anim: anim === 'bounce' ? 'bounce' as const : undefined };
         }
 
+        const endsIn = Number(ends_in);
+        const countdown = Number.isFinite(endsIn) && endsIn > 0;
+        const leftMins = (remSec: number) => String(Math.max(1, Math.ceil(remSec / 60)));
+        const template = text;
+
+        if (countdown) {
+            text = template.replace(/\{left\}/g, leftMins(endsIn));
+        }
+
         // 直接送，不再先查名單。bot 不在房間裡的話 Telegram 會直接回錯，
         // 名單只用來做廣播與統計。
         let result: { sent: any; chatId: number; migratedFrom?: number };
+        const sentAt = Date.now();
 
         try {
             result = await SendWithMigration(appContext.TGBot, chatId, text, opts);
@@ -75,6 +86,43 @@ export function SendMessage(appContext: AppContext) {
                     console.error(`[sendMessage] ${requestId} 自動刪除失敗 chatId=${delChatId} messageId=${messageId}`, TGErrorDetail(e));
                 });
             }, Math.min(ttlSec, 48 * 3600) * 1000);
+        }
+
+        if (countdown && result.sent?.message_id) {
+            const cId = result.chatId;
+            const messageId = result.sent.message_id;
+            const isMedia = !!(result.sent.photo || result.sent.animation || result.sent.document || result.sent.video);
+            const endAt = sentAt + Math.min(endsIn, ttlSec > 0 ? ttlSec : endsIn) * 1000;
+            const editOpts: any = { chat_id: cId, message_id: messageId, ...(opts?.parseMode ? { parse_mode: opts.parseMode } : {}) };
+            let lastText = text;
+
+            // 只存在記憶體：服務重啟的話倒數就停在最後一次更新的數字（可接受）
+            const timer = setInterval(async () => {
+                if (Date.now() >= endAt) {
+                    clearInterval(timer);
+
+                    return;
+                }
+
+                const body = template.replace(/\{left\}/g, leftMins(endsIn - (Date.now() - sentAt) / 1000));
+
+                if (body === lastText) {
+                    return;
+                }
+
+                try {
+                    if (isMedia) {
+                        await appContext.TGBot.editMessageCaption(body, editOpts);
+                    } else {
+                        await appContext.TGBot.editMessageText(body, editOpts);
+                    }
+
+                    lastText = body;
+                } catch (e: unknown) {
+                    console.error(`[sendMessage] ${requestId} 倒數更新失敗，停止 chatId=${cId} messageId=${messageId}`, TGErrorDetail(e));
+                    clearInterval(timer);
+                }
+            }, 60 * 1000);
         }
 
         // 統計失敗不影響「訊息已送出」這件事，只記 log
