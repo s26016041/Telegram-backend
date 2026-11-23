@@ -84,7 +84,7 @@ export type SendOptions = {
 const GIF_SCALE = 2;
 const gifCache = new Map<string, Buffer>();
 
-// 下載 GIF 並用最近鄰放大（保持像素銳利）；任何一步失敗回傳 null，由呼叫端退回原網址
+// 下載 GIF，透明背景填白（Telegram 動圖是 MP4，不支援透明，會變黑），再用最近鄰放大（保持像素銳利）；任何一步失敗回傳 null，由呼叫端退回原網址
 async function upscaleGif(url: string, scale: number = GIF_SCALE): Promise<Buffer | null> {
     const key = `${url}@${scale}`;
     const hit = gifCache.get(key);
@@ -103,7 +103,7 @@ async function upscaleGif(url: string, scale: number = GIF_SCALE): Promise<Buffe
 
         const src = Buffer.from(await r.arrayBuffer());
         const meta = await sharp(src, { animated: true }).metadata();
-        const out: Buffer = await sharp(src, { animated: true }).resize({ width: meta.width * scale, kernel: 'nearest' }).gif().toBuffer();
+        const out: Buffer = await sharp(src, { animated: true }).flatten({ background: '#ffffff' }).resize({ width: meta.width * scale, kernel: 'nearest' }).gif().toBuffer();
 
         if (gifCache.size >= 200) {
             gifCache.clear();
