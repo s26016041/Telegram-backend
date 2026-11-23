@@ -77,14 +77,17 @@ export type SendOptions = {
     parseMode?: 'HTML';
     // 有給圖片網址就改用 sendPhoto，text 當圖片說明
     photo?: string;
+    // GIF 放大倍數（1~6，預設 2）；數字越小圖越小
+    scale?: number;
 };
 
-const GIF_SCALE = 4;
+const GIF_SCALE = 2;
 const gifCache = new Map<string, Buffer>();
 
 // 下載 GIF 並用最近鄰放大（保持像素銳利）；任何一步失敗回傳 null，由呼叫端退回原網址
-async function upscaleGif(url: string): Promise<Buffer | null> {
-    const hit = gifCache.get(url);
+async function upscaleGif(url: string, scale: number = GIF_SCALE): Promise<Buffer | null> {
+    const key = `${url}@${scale}`;
+    const hit = gifCache.get(key);
 
     if (hit) {
         return hit;
@@ -100,13 +103,13 @@ async function upscaleGif(url: string): Promise<Buffer | null> {
 
         const src = Buffer.from(await r.arrayBuffer());
         const meta = await sharp(src, { animated: true }).metadata();
-        const out: Buffer = await sharp(src, { animated: true }).resize({ width: meta.width * GIF_SCALE, kernel: 'nearest' }).gif().toBuffer();
+        const out: Buffer = await sharp(src, { animated: true }).resize({ width: meta.width * scale, kernel: 'nearest' }).gif().toBuffer();
 
         if (gifCache.size >= 200) {
             gifCache.clear();
         }
 
-        gifCache.set(url, out);
+        gifCache.set(key, out);
 
         return out;
     } catch (e) {
@@ -125,7 +128,7 @@ async function deliver(bot: any, chatId: number, text: string, opts?: SendOption
             // .gif 網址用 sendAnimation 才會動（sendPhoto 會把 GIF 當靜態圖）
             if (/\.gif(\?|#|$)/i.test(opts.photo)) {
                 // 像素小動圖放大後會糊：先用最近鄰放大 4 倍再送（失敗就直接送原網址）
-                const big = await upscaleGif(opts.photo);
+                const big = await upscaleGif(opts.photo, opts.scale);
 
                 if (big) {
                     return await bot.sendAnimation(chatId, big, { caption: text, ...extra }, { filename: 'a.gif', contentType: 'image/gif' });
