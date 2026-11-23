@@ -85,6 +85,11 @@ async function deliver(bot: any, chatId: number, text: string, opts?: SendOption
 
     if (opts?.photo) {
         try {
+            // .gif 網址用 sendAnimation 才會動（sendPhoto 會把 GIF 當靜態圖）
+            if (/\.gif(\?|#|$)/i.test(opts.photo)) {
+                return await bot.sendAnimation(chatId, opts.photo, { caption: text, ...extra });
+            }
+
             return await bot.sendPhoto(chatId, opts.photo, { caption: text, ...extra });
         } catch (e: any) {
             if (e?.response?.body?.parameters?.migrate_to_chat_id) {

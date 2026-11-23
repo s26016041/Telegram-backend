@@ -32,7 +32,10 @@ export function SendMessage(appContext: AppContext) {
 
         if (code) {
             // 例：鬼斯♀ IV100(A15/D15/S15) CP597 L17 剩 06 分: <code>34.918553,135.721833</code>
-            text = `${escapeHtml(name ?? '')}: <code>${escapeHtml(code)}</code>`;
+            // name 有換行（多行排版）時，座標另起一行；單行時維持舊格式「name: 座標」
+            const sep = (name ?? '').includes('\n') ? '\n📍 ' : ': ';
+
+            text = `${escapeHtml(name ?? '')}${sep}<code>${escapeHtml(code)}</code>`;
             opts = { parseMode: 'HTML' };
         } else {
             text = `${name}:  \n ${content}`;
