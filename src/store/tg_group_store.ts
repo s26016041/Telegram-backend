@@ -79,6 +79,8 @@ export type SendOptions = {
     photo?: string;
     // GIF 放大倍數（1~6，預設 2）；數字越小圖越小
     scale?: number;
+    // 'bounce'：把靜態圖做成上下彈跳的動圖（用高解析度靜態圖，比像素小動圖清楚）
+    anim?: 'bounce';
 };
 
 const GIF_SCALE = 2;
@@ -119,12 +121,69 @@ async function upscaleGif(url: string, scale: number = GIF_SCALE): Promise<Buffe
     }
 }
 
+const bounceCache = new Map<string, Buffer>();
+
+// 靜態圖 → 彈跳動圖：白底、置中、上下彈跳；失敗回傳 null
+async function bounceGif(url: string): Promise<Buffer | null> {
+    const hit = bounceCache.get(url);
+
+    if (hit) {
+        return hit;
+    }
+
+    try {
+        const sharp = require('sharp');
+        const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
+
+        if (!r.ok) {
+            return null;
+        }
+
+        const SIZE = 240;
+        const PAD = 24;
+        const N = 12;
+        const src = Buffer.from(await r.arrayBuffer());
+        const base = await sharp(src).trim().resize({ width: SIZE - 2 * PAD, height: SIZE - 2 * PAD, fit: 'inside' }).toBuffer({ resolveWithObject: true });
+        const frames: Buffer[] = [];
+
+        for (let i = 0; i < N; i++) {
+            const dy = Math.round(Math.abs(Math.sin((i / N) * Math.PI)) * PAD * 0.9);
+            const left = Math.round((SIZE - base.info.width) / 2);
+            const top = SIZE - PAD - base.info.height - dy;
+
+            frames.push(await sharp({ create: { width: SIZE, height: SIZE, channels: 3, background: '#ffffff' } }).composite([{ input: base.data, left, top }]).png().toBuffer());
+        }
+
+        const out: Buffer = await sharp(frames, { join: { animated: true } }).gif({ delay: Array(N).fill(60), loop: 0 }).toBuffer();
+
+        if (bounceCache.size >= 200) {
+            bounceCache.clear();
+        }
+
+        bounceCache.set(url, out);
+
+        return out;
+    } catch (e) {
+        console.error(`[TG] 彈跳動圖產生失敗，改送原圖 url=${url}`, e);
+
+        return null;
+    }
+}
+
 // 送一則訊息；有圖片但圖片送不出去（網址壞掉等）時，退回純文字，避免通知漏掉
 async function deliver(bot: any, chatId: number, text: string, opts?: SendOptions): Promise<any> {
     const extra = opts?.parseMode ? { parse_mode: opts.parseMode } : {};
 
     if (opts?.photo) {
         try {
+            if (opts.anim === 'bounce' && !/\.gif(\?|#|$)/i.test(opts.photo)) {
+                const gif = await bounceGif(opts.photo);
+
+                if (gif) {
+                    return await bot.sendAnimation(chatId, gif, { caption: text, ...extra }, { filename: 'a.gif', contentType: 'image/gif' });
+                }
+            }
+
             // .gif 網址用 sendAnimation 才會動（sendPhoto 會把 GIF 當靜態圖）
             if (/\.gif(\?|#|$)/i.test(opts.photo)) {
                 // 像素小動圖放大後會糊：先用最近鄰放大 4 倍再送（失敗就直接送原網址）
